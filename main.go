@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -24,9 +25,8 @@ func errorList() {
 }
 
 func wrappedError() {
-	wrpReturnNil()
-	wrpReturnSingleError()
-	wrpReturnMultipleErrors()
+	fmt.Println("single wrapped: ", wrpReturnSingleError())
+	fmt.Println("multi wrapped: ", wrpReturnMultipleErrors())
 	serrs := wrpCombineDifferentErrors()
 	result := wrpProcessErrors(serrs)
 	fmt.Println(result)
@@ -38,18 +38,7 @@ func esReturnSingleError() *list.StateError {
 	return list.NewDegradedError("first single error")
 }
 
-func wrpReturnSingleError() *wrapped.StateError {
-	// NOTE: can't be `func wrpReturnSingleError() error` to avoid typecasting
-	// and to use methods like - Append
-	_ = &wrapped.StateError{State: wrapped.Degraded, Msg: "foobar"}
-	return wrapped.NewDegradedError("first single")
-}
-
 func esReturnNil() list.StateErrors {
-	return nil
-}
-
-func wrpReturnNil() *wrapped.StateError {
 	return nil
 }
 
@@ -67,29 +56,11 @@ func esReturnMultipleErrors() list.StateErrors {
 		Errors()
 }
 
-func wrpReturnMultipleErrors() *wrapped.StateError {
-	first := wrapped.NewDegradedError("multiple")
-
-	// pros:
-	//   *
-
-	// cons:
-	//   * O(N) operation
-	//   * first can't be `nil`
-	//
-
-	// if first == nil {
-	//  is needed before calling Append
-	// }
-
-	first.
-		Append(wrapped.NewDegradedError("another error")).
-		Append(wrapped.NewUnavailable("for some reason"))
-	return first
-}
-
 func esCombineDifferentErrors() list.StateErrors {
 	// combine 2  or more  error lists into one
+
+	// I don't understand why we would want to append a nil error ever? a
+	// nil error means no error, so there is nothing to append?
 	nilErr := esReturnNil()
 	first := esReturnSingleError()
 	multiple := esReturnMultipleErrors()
@@ -104,30 +75,6 @@ func esCombineDifferentErrors() list.StateErrors {
 		Errors()
 }
 
-func wrpCombineDifferentErrors() *wrapped.StateError {
-	// combine 2  or more  error lists into one
-	nilErr := wrpReturnNil()
-	first := wrpReturnSingleError()
-	multiple := wrpReturnMultipleErrors()
-	third := wrpReturnMultipleErrors()
-
-	// cons
-	//  * can't use `nilErr` for Append
-	// pros
-	//  * no need for builder but need to handle `nil` (which can be cumbersome)
-
-	// 🤯 can you find what's wrong with this?
-	// return first.Append(nilErr).
-	//   Append(multiple).
-	//   Append(third)
-
-	first.Append(nilErr).
-		Append(multiple).
-		Append(third)
-
-	return first
-}
-
 func esProcessErrors(serrs list.StateErrors) string {
 	sb := strings.Builder{}
 
@@ -140,15 +87,38 @@ func esProcessErrors(serrs list.StateErrors) string {
 
 }
 
-func wrpProcessErrors(errs *wrapped.StateError) string {
-	sb := strings.Builder{}
+// using a struct literal for error construction is just for brevity, this could
+// also be handled by constructors
+// the big advantage in my optinion is that except the functions that create,
+// combine or report this custom error can just treat it as errors, see the
+// function signatures
 
-	wrapped.ForEach(errs, func(err *wrapped.StateError) bool {
-		sb.WriteString(err.Error())
-		sb.WriteString("\n")
-		return true
-	})
-	// process all errors
-	return sb.String()
+func wrpReturnSingleError() error {
+	return wrapped.StateError{State: wrapped.Unavailable, Msg: "some reason"}
+}
+
+func wrpReturnMultipleErrors() error {
+	e1 := wrapped.StateError{State: wrapped.Degraded, Msg: "multiple"}
+	e2 := wrapped.StateError{State: wrapped.Degraded, Msg: "another error", Wrapped: &e1}
+	e3 := wrapped.StateError{State: wrapped.Unavailable, Msg: "some other reason", Wrapped: &e2}
+	return e3
+}
+
+func wrpCombineDifferentErrors() error {
+	// combine 2  or more  error lists into one
+	first := wrpReturnSingleError()
+	second := wrpReturnMultipleErrors()
+	third := wrpReturnMultipleErrors()
+	first = wrapped.JoinErrLists(first, wrapped.JoinErrLists(second, third))
+
+	return first
+}
+
+func wrpProcessErrors(errs error) string {
+	var e wrapped.StateError
+	if errors.As(errs, &e) {
+		return e.Report()
+	}
+	return errs.Error()
 
 }
