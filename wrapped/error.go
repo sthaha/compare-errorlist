@@ -32,7 +32,7 @@ func NewUnavailable(msg string) *StateError {
 }
 
 func (se *StateError) Error() string {
-	return fmt.Sprintf("StateError: %s: %s", se.State, se.Msg)
+	return fmt.Sprintf("WrappedStateError: %s: %s", se.State, se.Msg)
 }
 
 func (se *StateError) Unwrap() error {

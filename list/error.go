@@ -26,7 +26,7 @@ func NewUnavailable(msg string) *StateError {
 }
 
 func (e *StateError) Error() string {
-	return fmt.Sprintf("StateError: %s: %s", e.State, e.Msg)
+	return fmt.Sprintf("SimpleStateError: %s: %s", e.State, e.Msg)
 }
 
 // StateErrors is only a list of StateErrors and isn't an error but can be

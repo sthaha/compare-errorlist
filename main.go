@@ -34,8 +34,6 @@ func wrappedError() {
 }
 
 func esReturnSingleError() *list.StateError {
-	// CONS
-	//  * returning single error requires builder
 	_ = &list.StateError{State: list.Degraded, Msg: "foobar"}
 	return list.NewDegradedError("first single error")
 }
@@ -43,6 +41,7 @@ func esReturnSingleError() *list.StateError {
 func wrpReturnSingleError() *wrapped.StateError {
 	// NOTE: can't be `func wrpReturnSingleError() error` to avoid typecasting
 	// and to use methods like - Append
+	_ = &wrapped.StateError{State: wrapped.Degraded, Msg: "foobar"}
 	return wrapped.NewDegradedError("first single")
 }
 
@@ -125,6 +124,7 @@ func wrpCombineDifferentErrors() *wrapped.StateError {
 	first.Append(nilErr).
 		Append(multiple).
 		Append(third)
+
 	return first
 }
 
