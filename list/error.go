@@ -21,11 +21,11 @@ func NewDegradedError(msg string) *StateError {
 	return &StateError{State: Degraded, Msg: msg}
 }
 
-func NewUnavailable(msg string) *StateError {
+func NewUnavailableError(msg string) *StateError {
 	return &StateError{State: Unavailable, Msg: msg}
 }
 
-func (e *StateError) Error() string {
+func (e StateError) Error() string {
 	return fmt.Sprintf("SimpleStateError: %s: %s", e.State, e.Msg)
 }
 

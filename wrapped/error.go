@@ -27,7 +27,7 @@ func NewDegradedError(msg string) *StateError {
 	return &StateError{State: Degraded, Msg: msg, wrapped: nil}
 }
 
-func NewUnavailable(msg string) *StateError {
+func NewUnavailableError(msg string) *StateError {
 	return &StateError{State: Unavailable, Msg: msg, wrapped: nil}
 }
 
@@ -59,7 +59,7 @@ func (se *StateError) Append(err *StateError) *StateError {
 	return se.wrapped.(*StateError)
 }
 
-func ForEach(head *StateError, fn func(*StateError) bool) {
+func ForEach(head *StateError, fn func(StateError) bool) {
 	// fmt.Println("== unwarp ==")
 
 	var current error = head
@@ -76,7 +76,7 @@ func ForEach(head *StateError, fn func(*StateError) bool) {
 			panic(" something went wrong here ...")
 		}
 
-		if next := fn(se); !next {
+		if next := fn(*se); !next {
 			// fmt.Println("... breaking processing on request")
 			break
 		}
